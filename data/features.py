@@ -927,7 +927,7 @@ class Polinomials(object):
     @classmethod
     def set(cls, X):
         print("... ... Polinomials")
-        X["ild_x_pr"] = X["is_last_duration"] * X["pos_rate"]
+        X["ild_x_pr"] = X["last_elapsed_time"] * X["pos_rate"]
         return X
 
 class TargetVariable(object):
