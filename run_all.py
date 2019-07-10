@@ -25,7 +25,7 @@ from data.features import BySession
 from data.features import ByItem
 from data.features import ByLocation
 from data.features import JustBeforeClickout
-from data.features import Perceptions
+from data.features import Perception
 from data.features import Polinomials
 from data.features import TargetVariable
 
@@ -96,7 +96,7 @@ def all_pipeline():
     print("... feature engineering to expanded X")
     X = EncodingForCategories.to_prob(X, dataset)
     X = BySession.set(X, dataset)
-    X = Perceptions.detect(X, dataset)
+    X = Perception.detect(X, dataset)
     X = ByItem.set(X, dataset)
     X = ByLocation.set(X, dataset)
     X = JustBeforeClickout.set(X, dataset)

@@ -134,7 +134,7 @@ class Record2Impression(object):
         return (X, extract_cols)
 
 
-class Perceptions(object):
+class Perception(object):
     @classmethod
     def detect(cls, X, dataset):
         print("... ... Perceptions")
@@ -385,10 +385,11 @@ class ByItem(object):
         del ctrbycity_rank_df
 
         # bayes likelihood by item
+        bayes_likelihood = dataset["bayes_likelihood"]
         X["rlr"] = X["impression"].astype(str) + X["last_reference"].astype(str)
         def set_bayes_li(rlr):
-            if rlr in bayes_dict:
-                return bayes_dict[rlr]
+            if rlr in bayes_likelihood:
+                return bayes_likelihood[rlr]
             return 0.0
         X["bayes_li"] = X[["rlr"]].apply(lambda x: set_bayes_li(x.rlr), axis=1)
 
