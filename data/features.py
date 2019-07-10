@@ -277,9 +277,11 @@ class ByItem(object):
     @classmethod
     def set(cls, X, dataset):
         print("... ... ByItem")
+        all_df = dataset["all_df"]
 
         # imps score
         impscore_df = dataset["impscore_df"]
+        item_props = dataset["item_props"]
         X = pd.merge(X, impscore_df, on="impression", how="left")
         X["impsocre"] = X["impsocre"].fillna(0)
 
@@ -360,7 +362,6 @@ class ByItem(object):
         del ref_df
 
         # item ctr by city
-        all_df = dataset["all_df"]
         cr_tmp_df = all_df[all_df.action_type == "clickout item"].copy()
         cr_tmp_df = cr_tmp_df[cr_tmp_df.is_y == 0] # to prevent leakage
         city_df = cr_tmp_df[["city"]].groupby(["city"]).size().reset_index()

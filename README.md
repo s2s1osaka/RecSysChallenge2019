@@ -1,4 +1,4 @@
-# s1s2osaka
+# s2s1osaka
 We archived 13th out of 1564 sign-uped teams in RecSys Challenge 2019 with Public score 0.673804 and Final score 0.671117. This publication of code is to build the solution we came up with. Also, our team consists of `yasuo.yamamoto.jp@gmail.com` and `    axel.x12x@gmail.com`.  
 
 # Requirements
