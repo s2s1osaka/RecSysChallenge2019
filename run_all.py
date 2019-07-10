@@ -1,0 +1,141 @@
+import pandas as pd
+pd.options.display.float_format = '{}'.format
+pd.options.display.max_rows = 25
+pd.options.display.max_columns = 500
+pd.set_option("display.max_colwidth", 240)
+import numpy as np
+import datetime
+import random
+import time
+import random
+import gc
+
+from data.loader import Dataset
+from data.preprocessing import CityForSessionStep
+from data.preprocessing import ItemPropsVector
+from data.preprocessing import View2viewCounter
+from data.preprocessing import BayesLikelihood
+from data.preprocessing import ImpressionScore
+
+from data.features import Durations
+from data.features import JustClickout
+from data.features import Record2Impression
+from data.features import EncodingForCategories
+from data.features import BySession
+from data.features import ByItem
+from data.features import ByLocation
+from data.features import JustBeforeClickout
+from data.features import Perceptions
+from data.features import Polinomials
+from data.features import TargetVariable
+
+from modeling.local import Validation
+from modeling.public import Prediction
+from modeling.public import Submission
+
+
+def all_pipeline():
+
+    start = time.time()
+    print("starting")
+
+    # loading dataset
+    print("... loading dataset")
+    dataset = Dataset.load(path="./data_v2/")
+
+    # preprocessing
+    print("... preprocessing")
+    CityForSessionStep.create(dataset)
+    ItemPropsVector.create(dataset)
+    View2viewCounter.create(dataset)
+    BayesLikelihood.create(dataset)
+    ImpressionScore.create(dataset)
+    gc.collect()
+
+    # create rows for training as X
+    print("... create rows for training as X")
+    extract_cols = ["user_id"
+        , "_session_id"
+        , "session_id"
+        , "timestamp"
+        , "timestamp_dt"
+        , "step"
+        , "_step"
+        , "reference"
+        , "platform"
+        , "city"
+        , "current_filters"
+        , "device"
+        , "country_name"
+        , "is_train"
+        , "is_y"]
+    X = dataset["all_df"][dataset["all_df"].is_y == 1].copy()
+    X = X[extract_cols + ["impressions", "prices"]]
+    gc.collect()
+
+    # set dummy variables for device
+    print("... set dummy variables for device")
+    device_df = pd.get_dummies(X[["device"]], columns=['device'])
+    device_df.columns = ["desktop", "mobile", "tablet"]
+    X = pd.concat([X, device_df[["desktop", "mobile"]]], axis=1)
+    extract_cols = extract_cols + ["desktop", "mobile"]
+    del device_df
+
+    # feature engineering to X
+    print("... feature engineering to X")
+    X, extract_cols = Durations.set(X, extract_cols, dataset)
+    X, extract_cols = JustClickout.set(X, extract_cols)
+    gc.collect()
+
+    # expanding X
+    print("... expanding X")
+    X, extract_cols = Record2Impression.expand(X, extract_cols)
+    gc.collect()
+
+    # feature engineering to expanded X
+    print("... feature engineering to expanded X")
+    X = EncodingForCategories.to_prob(X, dataset)
+    X = BySession.set(X, dataset)
+    X = Perceptions.detect(X, dataset)
+    X = ByItem.set(X, dataset)
+    X = ByLocation.set(X, dataset)
+    X = JustBeforeClickout.set(X, dataset)
+    gc.collect()
+
+    # set interactions between features
+    print("... set interactions between features")
+    X = Polinomials.set(X)
+
+    # target variable
+    print("... target variable")
+    X = TargetVariable.set(X)
+
+    # local validation
+    print("... local validation")
+    X_TR = X[X.is_train == 1]
+    y_pred_df, mrr = Validation.get_pred_df(X_TR)
+    gc.collect()
+    print(y_pred_df.shape)
+    print(y_pred_df.head())
+    print("mrr: {}".format(mrr))
+
+    # create submission
+    print("... create submission")
+    X_TE = X[X.is_train == 0]
+    y_pred_df = Prediction.get_pred_df(X_TR, X_TE)
+    IDCOLS_DF = X[["gid", "user_id", "session_id", "step"]].copy()
+    IDCOLS_DF = IDCOLS_DF[~IDCOLS_DF.duplicated()]
+    sub_df = Submission.get_sub_df(y_pred_df, IDCOLS_DF)
+    prefix = "{}_{:0=4}".format(datetime.datetime.now().strftime("%Y%m%d")
+                                , random.randint(0, 100))
+    sub_csv = "./subs/" + prefix + "_submission.csv"
+    sub_df.to_csv(sub_csv, header=True, index=False, sep=',')
+    gc.collect()
+    print(sub_csv)
+
+    elapsed_time = time.time() - start
+    print("elapsed_time: {0}".format(elapsed_time/60/60) + "[hour]")
+    print("finished")
+
+if __name__ == "__main__":
+    all_pipeline()
