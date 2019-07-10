@@ -8,7 +8,7 @@ We archived 13th out of 1564 sign-uped teams in RecSys Challenge 2019 with Publi
 - lightgbm 2.2.1
 
 # Getting a submission through a full pipeline
-First, you must place this challenge's dataset at `./data_v2/` folder.
+First, you must place this challenge's dataset in `./data_v2/` folder.
 If you want to make the submission through loading data, pre-precessing, feature-engineering, local-validation, and prediction, you can putting into this command as follow 
 ```
 $ python run_all.py
