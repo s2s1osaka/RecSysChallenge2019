@@ -9,6 +9,7 @@ import random
 import time
 import random
 import gc
+import sys
 
 from data.loader import Dataset
 from data.preprocessing import CityForSessionStep
@@ -34,14 +35,13 @@ from modeling.public import Prediction
 from modeling.public import Submission
 
 
-def all_pipeline():
-
+def pipeline(scope="check"):
     start = time.time()
     print("starting")
 
     # loading dataset
     print("... loading dataset")
-    dataset = Dataset.load(path="./data_v2/")
+    dataset = Dataset.load(path="./data_v2/", scope=scope)
 
     # preprocessing
     print("... preprocessing")
@@ -113,29 +113,45 @@ def all_pipeline():
     # local validation
     print("... local validation")
     X_TR = X[X.is_train == 1]
-    y_pred_df, mrr = Validation.get_pred_df(X_TR)
+    y_pred_df, mrr = Validation.get_pred_df(X_TR, scope=scope)
     gc.collect()
     print(y_pred_df.shape)
     print(y_pred_df.head())
-    print("mrr: {}".format(mrr))
+    print("")
+    print("Local mrr: {}".format(mrr))
 
-    # create submission
-    print("... create submission")
-    X_TE = X[X.is_train == 0]
-    y_pred_df = Prediction.get_pred_df(X_TR, X_TE)
-    IDCOLS_DF = X[["gid", "user_id", "session_id", "step"]].copy()
-    IDCOLS_DF = IDCOLS_DF[~IDCOLS_DF.duplicated()]
-    sub_df = Submission.get_sub_df(y_pred_df, IDCOLS_DF, dataset)
-    prefix = "{}_{:0=4}".format(datetime.datetime.now().strftime("%Y%m%d")
-                                , random.randint(0, 100))
-    sub_csv = "./subs/" + prefix + "_submission.csv"
-    sub_df.to_csv(sub_csv, header=True, index=False, sep=',')
-    gc.collect()
-    print(sub_csv)
+    if (scope!="--check"):
+        # create submission
+        print("... create submission")
+        X_TE = X[X.is_train == 0]
+        y_pred_df = Prediction.get_pred_df(X_TR, X_TE)
+        IDCOLS_DF = X[["gid", "user_id", "session_id", "step"]].copy()
+        IDCOLS_DF = IDCOLS_DF[~IDCOLS_DF.duplicated()]
+        sub_df = Submission.get_sub_df(y_pred_df, IDCOLS_DF, dataset)
+        prefix = "{}_{:0=4}".format(datetime.datetime.now().strftime("%Y%m%d")
+                                    , random.randint(0, 100))
+        sub_csv = "./subs/" + prefix + "_submission.csv"
+        sub_df.to_csv(sub_csv, header=True, index=False, sep=',')
+        gc.collect()
+        print(sub_csv)
 
     elapsed_time = time.time() - start
-    print("elapsed_time: {0}".format(elapsed_time/60/60) + "[hour]")
+    print("pipeline elapsed_time: {0}".format(elapsed_time/60/60) + " [hour]")
     print("finished")
 
 if __name__ == "__main__":
-    all_pipeline()
+    args = sys.argv
+    if 2 <= len(args):
+        scope = str(args[1])
+        if (scope == "--check") or (scope == "--all"):
+            pipeline(scope=scope)
+        else:
+            print("Arguments are too short.")
+            print("Usage: python run.py [--check|--all]")
+            print("--check: in order to do code walkthrough without making submission")
+            print("--all: to do all pipeline with full dataset")
+    else:
+        print("Arguments are too short.")
+        print("Usage: python run.py [--check|--all]")
+        print("--check: in order to do code walkthrough without making submission")
+        print("--all: to do all pipeline with full dataset")
