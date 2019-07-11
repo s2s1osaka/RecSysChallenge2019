@@ -8,7 +8,7 @@ We archived 13th out of 1564 sign-uped teams in RecSys Challenge 2019 with Publi
 - lightgbm 2.2.1
 
 
-# How to check this repository as code walkthrough
+# How to check this repository as a code walkthrough
 You can execute pipeline with 1/10 training dataset as follow command to evaluate this repository.  
 ```
 $ python run.py --cehck
@@ -69,7 +69,7 @@ elapsed_time: 1.1241914156410429 [hour]
 finished
 ```
 
-# Getting a submission through a full pipeline
+# Getting a submission with full training dataset
 First, you must place this challenge's dataset in `./data_v2/` folder.
 You can make the submission through loading data, pre-precessing, feature-engineering, local-validation, and prediction, you put into this command as follow 
 ```
