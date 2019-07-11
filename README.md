@@ -7,6 +7,14 @@ We archived 13th out of 1564 sign-uped teams in RecSys Challenge 2019 with Publi
 - pandas 0.23.4
 - lightgbm 2.2.1
 
+# Dataset
+First, you must place this challenge's dataset in `./data_v2/` folder.
+```
+./data_v2/train.csv
+./data_v2/test.csv
+./data_v2/item_metadata.csv
+./data_v2/submission_popular.csv
+```
 
 # How to check this repository as a code walkthrough
 You can execute pipeline with 1/10 training dataset as follow command to evaluate this repository.  
@@ -14,7 +22,7 @@ You can execute pipeline with 1/10 training dataset as follow command to evaluat
 $ python run.py --cehck
 ```
 Then, you can see a messages as follow to confirm getting pipeline done normally.
-Memo: It's not problem that code walkthrough occurs a warning massages like `numpy RuntimeWarning: Mean of empty slice` because of using shrinked training dataset.    
+Memo: It's not problem that code walkthrough occurs a warning massages like `numpy/.. RuntimeWarning: Mean of empty slice` because of using shrinked training dataset.    
 ```
 starting
 ... loading dataset
@@ -71,7 +79,6 @@ finished
 ```
 
 # Getting a submission with full training dataset
-First, you must place this challenge's dataset in `./data_v2/` folder.
 You can make the submission through loading data, pre-precessing, feature-engineering, local-validation, and prediction, you put into this command as follow 
 ```
 $ python run.py --all 
