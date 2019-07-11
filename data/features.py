@@ -691,6 +691,7 @@ class BySession(object):
         del preref_df3
 
         # clickouted item during session
+        # ToDo: should be moved to awareness ?
         couted_df = all_df[["action_type", "session_id", "reference", "is_y"]].copy()
         couted_df = couted_df[couted_df.action_type == "clickout item"]
         couted_df = couted_df[couted_df.is_y == 0] # to prevent leakage

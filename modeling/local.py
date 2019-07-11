@@ -46,5 +46,11 @@ class Validation(object):
                                      , "impression": X_test["impression"].values
                                      , "clicked": y_test["clicked"].values
                                      , "prob": y_pred})
+        if (scope!="--check"):
+            # print feature importance
+            fti = model.feature_importance()
+            fti_df = pd.DataFrame({"feature": target_cols, "importance": fti})
+            print(fti_df.sort_values("importance", ascending=False))
+
         # display(y_pred_df.head())
         return (y_pred_df, np.mean(y_pred_df.groupby("gid").apply(lambda x: calc_mrr(x))))
