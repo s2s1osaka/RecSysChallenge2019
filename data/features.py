@@ -138,7 +138,7 @@ class Record2Impression(object):
 class Awareness(object):
     @classmethod
     def detect(cls, X, dataset):
-        print("... ... Perceptions")
+        print("... ... Awareness")
         all_df = dataset["all_df"]
 
         # join pos stats"
