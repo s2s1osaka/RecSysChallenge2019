@@ -42,7 +42,7 @@ starting
 ... feature engineering to expanded X
 ... ... EncodingForCategories
 ... ... BySession
-... ... Perceptions
+... ... Awareness
 ... ... ByItem
 ... ... ByLocation
 ... ... JustBeforeClickout
