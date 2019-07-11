@@ -3,17 +3,13 @@ import numpy as np
 import datetime
 from modeling import target_dtype, parse_dates
 from modeling import get_target_cols, get_id_cols
-from modeling import lgbm_params
+from modeling import lgbm_params, _lgbm_params
 from modeling.metrics import calc_mrr
 import lightgbm as lgb
 
 class Validation(object):
     @classmethod
     def get_pred_df(cls, X_TR, scope="--check"):
-        _lgbm_params = lgbm_params.copy()
-        if (scope=="--check"):
-            _lgbm_params["n_estimators"] = '10'
-
         target_cols = get_target_cols()
         id_cols = get_id_cols()
 
@@ -39,7 +35,10 @@ class Validation(object):
         # modeling
         lgb_train = lgb.Dataset(X_train[target_cols], y_train, group=Q_train['query'])
         lgb_eval = lgb.Dataset(X_test[target_cols], y_test, group=Q_test['query'], reference=lgb_train)
-        model = lgb.train(_lgbm_params, lgb_train, valid_sets=lgb_eval)
+        if (scope=="--check"):
+            model = lgb.train(_lgbm_params, lgb_train, valid_sets=lgb_eval)
+        else:
+            model = lgb.train(lgbm_params, lgb_train, valid_sets=lgb_eval)
 
         # calc mrr
         y_pred = model.predict(X_test[target_cols], num_iteration=model.best_iteration)

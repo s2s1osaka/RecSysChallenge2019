@@ -289,4 +289,9 @@ lgbm_params = {'objective': 'lambdarank'
     , 'n_estimators': '800'
     , 'ndcg_eval_at': {1, 3, 5}}
 
+_lgbm_params = {'objective': 'lambdarank'
+    , 'metric': 'ndcg'
+    , 'n_estimators': '10'
+    , 'ndcg_eval_at': {1, 3, 5}}
+
 num_boost_round = 800
