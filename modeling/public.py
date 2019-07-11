@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime
+from modeling import get_target_cols
 from modeling import lgbm_params, num_boost_round
 import lightgbm as lgb
 
@@ -8,6 +9,7 @@ import lightgbm as lgb
 class Prediction(object):
     @classmethod
     def get_pred_df(cls, X_TR, X_TE):
+        target_cols = get_target_cols()
 
         # full training
         Q_TR = X_TR[['session_id', 'gid']].groupby('session_id').count().reset_index()
@@ -28,7 +30,9 @@ class Prediction(object):
 
 class Submission(object):
     @classmethod
-    def get_sub_df(cls, y_pred_df, IDCOLS_DF):
+    def get_sub_df(cls, y_pred_df, IDCOLS_DF, dataset):
+        submission_df = dataset["submission_df"]
+
         # rank normalization
         y_pred_df["prob"] = y_pred_df["prob"].rank(ascending=True)
         y_pred_df["prob"] = y_pred_df["prob"].astype(int)

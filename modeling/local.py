@@ -10,6 +10,9 @@ import lightgbm as lgb
 class Validation(object):
     @classmethod
     def get_pred_df(cls, X_TR):
+        target_cols = get_target_cols()
+        id_cols = get_id_cols()
+
         # datetime of splitting into train and test
         split_dt = datetime.datetime.strptime("2018-11-05 09:00:00", '%Y-%m-%d %H:%M:%S')
 
@@ -32,7 +35,7 @@ class Validation(object):
         # modeling
         lgb_train = lgb.Dataset(X_train[target_cols], y_train, group=Q_train['query'])
         lgb_eval = lgb.Dataset(X_test[target_cols], y_test, group=Q_test['query'], reference=lgb_train)
-        model = lgb.train(cls.lgbm_params, lgb_train, valid_sets=lgb_eval)
+        model = lgb.train(lgbm_params, lgb_train, valid_sets=lgb_eval)
 
         # calc mrr
         y_pred = model.predict(X_test[target_cols], num_iteration=model.best_iteration)

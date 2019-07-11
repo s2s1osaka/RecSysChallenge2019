@@ -25,7 +25,7 @@ from data.features import BySession
 from data.features import ByItem
 from data.features import ByLocation
 from data.features import JustBeforeClickout
-from data.features import Perception
+from data.features import Awareness
 from data.features import Polinomials
 from data.features import TargetVariable
 
@@ -96,7 +96,7 @@ def all_pipeline():
     print("... feature engineering to expanded X")
     X = EncodingForCategories.to_prob(X, dataset)
     X = BySession.set(X, dataset)
-    X = Perception.detect(X, dataset)
+    X = Awareness.detect(X, dataset)
     X = ByItem.set(X, dataset)
     X = ByLocation.set(X, dataset)
     X = JustBeforeClickout.set(X, dataset)
@@ -125,7 +125,7 @@ def all_pipeline():
     y_pred_df = Prediction.get_pred_df(X_TR, X_TE)
     IDCOLS_DF = X[["gid", "user_id", "session_id", "step"]].copy()
     IDCOLS_DF = IDCOLS_DF[~IDCOLS_DF.duplicated()]
-    sub_df = Submission.get_sub_df(y_pred_df, IDCOLS_DF)
+    sub_df = Submission.get_sub_df(y_pred_df, IDCOLS_DF, dataset)
     prefix = "{}_{:0=4}".format(datetime.datetime.now().strftime("%Y%m%d")
                                 , random.randint(0, 100))
     sub_csv = "./subs/" + prefix + "_submission.csv"

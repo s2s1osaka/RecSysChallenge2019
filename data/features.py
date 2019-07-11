@@ -83,6 +83,7 @@ class JustBeforeClickout(object):
             X[lat_col] = X[lat_col].fillna(0)
         del lasttype_df
         del onehot_lat
+        return X
 
 
 class Record2Impression(object):
@@ -134,7 +135,7 @@ class Record2Impression(object):
         return (X, extract_cols)
 
 
-class Perception(object):
+class Awareness(object):
     @classmethod
     def detect(cls, X, dataset):
         print("... ... Perceptions")
@@ -927,7 +928,7 @@ class Polinomials(object):
     @classmethod
     def set(cls, X):
         print("... ... Polinomials")
-        X["ild_x_pr"] = X["last_elapsed_time"] * X["pos_rate"]
+        X["let_x_pr"] = X["last_elapsed_time"] * X["pos_rate"]
         return X
 
 class TargetVariable(object):
