@@ -13,7 +13,8 @@ You can execute pipeline with 1/10 training dataset as follow command to evaluat
 ```
 $ python run.py --cehck
 ```
-Then, you can see a messages as follow to confirm getting pipeline done well.
+Then, you can see a messages as follow to confirm getting pipeline done normally.
+Memo: It's not problem that code walkthrough occurs a warning massages like `numpy RuntimeWarning: Mean of empty slice` because of using shrink training dataset.    
 ```
 starting
 ... loading dataset
