@@ -30,8 +30,7 @@ class Prediction(object):
 
 class Submission(object):
     @classmethod
-    def get_sub_df(cls, y_pred_df, IDCOLS_DF, dataset):
-        submission_df = dataset["submission_df"]
+    def get_sub_df(cls, y_pred_df, IDCOLS_DF, submission_df):
 
         # rank normalization
         y_pred_df["prob"] = y_pred_df["prob"].rank(ascending=True)

@@ -95,8 +95,8 @@ def pipeline(scope="check"):
     # feature engineering to expanded X
     print("... feature engineering to expanded X")
     X = EncodingForCategories.to_prob(X, dataset)
-    X = BySession.set(X, dataset)
     X = Awareness.detect(X, dataset)
+    X = BySession.set(X, dataset)
     X = ByItem.set(X, dataset)
     X = ByLocation.set(X, dataset)
     X = JustBeforeClickout.set(X, dataset)
@@ -123,11 +123,14 @@ def pipeline(scope="check"):
     if (scope!="--check"):
         # create submission
         print("... create submission")
+        submission_df = dataset["submission_df"].copy()
+        del dataset
+        gc.collect()
         X_TE = X[X.is_train == 0]
         y_pred_df = Prediction.get_pred_df(X_TR, X_TE)
         IDCOLS_DF = X[["gid", "user_id", "session_id", "step"]].copy()
         IDCOLS_DF = IDCOLS_DF[~IDCOLS_DF.duplicated()]
-        sub_df = Submission.get_sub_df(y_pred_df, IDCOLS_DF, dataset)
+        sub_df = Submission.get_sub_df(y_pred_df, IDCOLS_DF, submission_df)
         prefix = "{}_{:0=4}".format(datetime.datetime.now().strftime("%Y%m%d")
                                     , random.randint(0, 100))
         sub_csv = "./subs/" + prefix + "_submission.csv"

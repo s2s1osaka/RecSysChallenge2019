@@ -182,11 +182,11 @@ class Awareness(object):
         X[["last_timestamp"]] = X[["last_timestamp"]].fillna(-1)
         X["is_last"] = X[["impression", "last_reference"]].apply(lambda x: 1 if x.impression == x.last_reference else 0,
                                                                  axis=1)
-        X["last_elapsed_time"] = X[["impression", "last_reference", "timestamp", "last_timestamp"]].apply(
+        X["elapsed_time_between_is_last"] = X[["impression", "last_reference", "timestamp", "last_timestamp"]].apply(
             lambda x: int(x.timestamp) - int(x.last_timestamp) if x.impression == x.last_reference else np.nan, axis=1)
-        lastdur_df = X[["session_id", "last_elapsed_time"]].copy()
+        lastdur_df = X[["session_id", "elapsed_time_between_is_last"]].copy()
         lastdur_df = lastdur_df.dropna(axis=0, how='any')
-        X.drop("last_elapsed_time", axis=1, inplace=True)
+        X.drop("elapsed_time_between_is_last", axis=1, inplace=True)
         X = pd.merge(X, lastdur_df, on="session_id", how="left")
         del lastref_df
         del lastdur_df
@@ -231,6 +231,41 @@ class Awareness(object):
         X = pd.merge(X, isnext_gp_df, on="impression", how="left")
         del isnext_df
         del isnext_gp_df
+
+        # clickouted item during session
+        couted_df = all_df[["action_type", "session_id", "reference", "is_y"]].copy()
+        couted_df = couted_df[couted_df.action_type == "clickout item"]
+        couted_df = couted_df[couted_df.is_y == 0]  # to prevent leakage
+        couted_df = couted_df[["session_id", "reference"]]
+        couted_df.columns = ["session_id", "impression"]
+        couted_df = couted_df[~couted_df.duplicated()]
+        couted_df["clickouted"] = 1
+        X = pd.merge(X, couted_df, on=["session_id", "impression"], how="left")
+        X["clickouted"] = X["clickouted"].fillna(0)
+        X["clickouted"] = X["clickouted"].astype(int)
+
+        # diff between clickouted price mean
+        co_price_df = all_df[all_df.action_type == "clickout item"][
+            ["session_id", "reference", "prices", "impressions", "is_y"]].copy()
+        co_price_df = co_price_df[co_price_df.is_y == 0]  # to prevent leakage
+
+        def get_price(reference, impressions, prices):
+            imps = str(impressions).split("|")
+            prs = str(prices).split("|")
+            if reference in imps:
+                return prs[imps.index(reference)]
+            else:
+                return 0
+
+        co_price_df["price"] = co_price_df.apply(lambda x: get_price(x.reference, x.impressions, x.prices), axis=1)
+        co_price_df["price"] = co_price_df["price"].astype(float)
+        co_price_df = co_price_df.groupby("session_id").agg({'price': np.mean}).reset_index()
+        co_price_df.columns = ["session_id", "couted_price_mean"]
+        X = pd.merge(X, co_price_df, on="session_id", how="left")
+        X["couted_price_mean"] = X["couted_price_mean"].fillna(-1)
+        X["co_price_diff"] = X["price"].astype(float) / X["couted_price_mean"]
+        X.loc[X.co_price_diff < 0, "co_price_diff"] = 0
+        del co_price_df
 
         # set two above displayed item and five below displayed item
         u_cols = []
@@ -690,19 +725,6 @@ class BySession(object):
         del preref_df2
         del preref_df3
 
-        # clickouted item during session
-        # ToDo: should be moved to awareness ?
-        couted_df = all_df[["action_type", "session_id", "reference", "is_y"]].copy()
-        couted_df = couted_df[couted_df.action_type == "clickout item"]
-        couted_df = couted_df[couted_df.is_y == 0] # to prevent leakage
-        couted_df = couted_df[["session_id", "reference"]]
-        couted_df.columns = ["session_id", "impression"]
-        couted_df = couted_df[~couted_df.duplicated()]
-        couted_df["clickouted"] = 1
-        X = pd.merge(X, couted_df, on=["session_id", "impression"], how="left")
-        X["clickouted"] = X["clickouted"].fillna(0)
-        X["clickouted"] = X["clickouted"].astype(int)
-
         # clickouted item 2 item during session
         v2v_counter = dataset["v2v_counter"]
         def extract_sv2v_counter(iids):
@@ -714,6 +736,13 @@ class BySession(object):
                             v[s] = v2v_counter[iid][s]
             return v
 
+        couted_df = all_df[["action_type", "session_id", "reference", "is_y"]].copy()
+        couted_df = couted_df[couted_df.action_type == "clickout item"]
+        couted_df = couted_df[couted_df.is_y == 0]  # to prevent leakage
+        couted_df = couted_df[["session_id", "reference"]]
+        couted_df.columns = ["session_id", "impression"]
+        couted_df = couted_df[~couted_df.duplicated()]
+        couted_df["clickouted"] = 1
         sv2v_df = couted_df.groupby("session_id").apply(
             lambda x: extract_sv2v_counter(list(x.impression))).reset_index()
         sv2v_df.columns = ["session_id", "sv2v"]
@@ -736,27 +765,6 @@ class BySession(object):
         zeroit_df["is_zeroit"] = zeroit_df[["it_count"]].apply(lambda x: 1 if x.it_count == 1 else 0, axis=1)
         X = pd.merge(X, zeroit_df, on="session_id", how="left")
         del zeroit_df
-
-        # diff between clickouted price mean
-        co_price_df = all_df[all_df.action_type == "clickout item"][
-            ["session_id", "reference", "prices", "impressions", "is_y"]].copy()
-        co_price_df = co_price_df[co_price_df.is_y == 0] # to prevent leakage
-        def get_price(reference, impressions, prices):
-            imps = str(impressions).split("|")
-            prs = str(prices).split("|")
-            if reference in imps:
-                return prs[imps.index(reference)]
-            else:
-                return 0
-        co_price_df["price"] = co_price_df.apply(lambda x: get_price(x.reference, x.impressions, x.prices), axis=1)
-        co_price_df["price"] = co_price_df["price"].astype(float)
-        co_price_df = co_price_df.groupby("session_id").agg({'price': np.mean}).reset_index()
-        co_price_df.columns = ["session_id", "couted_price_mean"]
-        X = pd.merge(X, co_price_df, on="session_id", how="left")
-        X["couted_price_mean"] = X["couted_price_mean"].fillna(-1)
-        X["co_price_diff"] = X["price"].astype(float) / X["couted_price_mean"]
-        X.loc[X.co_price_diff < 0, "co_price_diff"] = 0
-        del co_price_df
 
         # first action_type
         firsta_df = all_df[["session_id", "_session_id", "action_type", "is_y"]].copy()
@@ -830,9 +838,9 @@ class BySession(object):
         lduration_all_df["pre_timestamp"] = lduration_all_df["timestamp"].shift(1)
         lduration_all_df["pre_session_id"] = lduration_all_df["session_id"].shift(1)
         lduration_all_df = lduration_all_df[lduration_all_df.session_id == lduration_all_df.pre_session_id]
-        lduration_all_df["elapsed_for_all"] = lduration_all_df["timestamp"] - lduration_all_df["pre_timestamp"]
+        lduration_all_df["elapsed_time"] = lduration_all_df["timestamp"] - lduration_all_df["pre_timestamp"]
         lduration_all_df = lduration_all_df[lduration_all_df.is_y == 1]
-        lduration_all_df = lduration_all_df[["session_id", "elapsed_for_all"]]
+        lduration_all_df = lduration_all_df[["session_id", "elapsed_time"]]
         X = pd.merge(X, lduration_all_df, on="session_id", how="left")
         del lduration_all_df
 
@@ -929,7 +937,7 @@ class Polinomials(object):
     @classmethod
     def set(cls, X):
         print("... ... Polinomials")
-        X["let_x_pr"] = X["last_elapsed_time"] * X["pos_rate"]
+        X["etbil_x_pr"] = X["elapsed_time_between_is_last"] * X["pos_rate"]
         return X
 
 class TargetVariable(object):

@@ -41,8 +41,8 @@ starting
 ... ... Record2Impression
 ... feature engineering to expanded X
 ... ... EncodingForCategories
-... ... BySession
 ... ... Awareness
+... ... BySession
 ... ... ByItem
 ... ... ByLocation
 ... ... JustBeforeClickout

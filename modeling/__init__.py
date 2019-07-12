@@ -127,7 +127,7 @@ target_dtype = {"gid": "str"
     , "last_reference": "str"
     , "last_timestamp": "str"
     , "is_last": "int8"
-    , "last_elapsed_time": "float16"
+    , "elapsed_time_between_is_last": "float16"
     , "last_last_reference": "str"
     , "is_last_last": "int8"
     , "clickouted": "int8"
@@ -159,7 +159,7 @@ target_dtype = {"gid": "str"
     , "ctrbyplatform_rank": "float16"
     , "it_count": "int8"
     , "is_zeroit": "int8"
-    , "let_x_pr": "float16"
+    , "etbil_x_pr": "float16"
     , "lat_change of sort order": "float16"
     , "lat_clickout item": "float16"
     , "lat_filter selection": "float16"
@@ -220,7 +220,7 @@ target_dtype = {"gid": "str"
     , "iif_ref_elapsed_mean": "float16"
     , "iir_ref_elapsed_mean": "float16"
     , "sfi_ref_elapsed_mean": "float16"
-    , "elapsed_for_all": "float16"
+    , "elapsed_time": "float16"
     , "tsh24": "int8"
     , "ctrbytsh24": "float16"
     , "star_rating": "str"
@@ -286,12 +286,12 @@ def get_target_cols():
 # simple LightGBM parameters with simple higher parameters
 lgbm_params = {'objective': 'lambdarank'
     , 'metric': 'ndcg'
-    , 'n_estimators': '800'
     , 'ndcg_eval_at': {1, 3, 5}}
 
 _lgbm_params = {'objective': 'lambdarank'
     , 'metric': 'ndcg'
-    , 'n_estimators': '10'
     , 'ndcg_eval_at': {1, 3, 5}}
 
 num_boost_round = 800
+
+_num_boost_round = 10

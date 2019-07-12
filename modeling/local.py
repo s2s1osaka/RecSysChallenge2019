@@ -4,6 +4,7 @@ import datetime
 from modeling import target_dtype, parse_dates
 from modeling import get_target_cols, get_id_cols
 from modeling import lgbm_params, _lgbm_params
+from modeling import num_boost_round, _num_boost_round
 from modeling.metrics import calc_mrr
 import lightgbm as lgb
 
@@ -36,9 +37,15 @@ class Validation(object):
         lgb_train = lgb.Dataset(X_train[target_cols], y_train, group=Q_train['query'])
         lgb_eval = lgb.Dataset(X_test[target_cols], y_test, group=Q_test['query'], reference=lgb_train)
         if (scope=="--check"):
-            model = lgb.train(_lgbm_params, lgb_train, valid_sets=lgb_eval)
+            model = lgb.train(_lgbm_params
+                              , lgb_train
+                              , num_boost_round=_num_boost_round
+                              , valid_sets=lgb_eval)
         else:
-            model = lgb.train(lgbm_params, lgb_train, valid_sets=lgb_eval)
+            model = lgb.train(lgbm_params
+                              , lgb_train
+                              , num_boost_round=num_boost_round
+                              , valid_sets=lgb_eval)
 
         # calc mrr
         y_pred = model.predict(X_test[target_cols], num_iteration=model.best_iteration)
