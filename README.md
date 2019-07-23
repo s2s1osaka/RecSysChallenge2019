@@ -1,5 +1,7 @@
 # s2s1osaka
-We archived 13th out of 1564 sign-uped teams in RecSys Challenge 2019 with Public score 0.673804 and Final score 0.671117. This publication of code is to build the solution we came up with. Also, our team consists of `yasuo.yamamoto.jp@gmail.com` and `axel.x12x@gmail.com`.  
+WARNING: Due to before code refactoring,  preprocessing and feature engineering are time consuming about 6 hours with standard specification machine.   
+
+We archived 13 out of 1564 sign-uped teams in The ACM RecSys Challenge 2019 with Public score 0.673804 and Final score 0.671117. This publication of code is to build the solution we came up with. Also, our team consists of `yasuo.yamamoto.jp@gmail.com` and `axel.x12x@gmail.com`.  
 
 # Requirements
 - Python 3.6.7 :: Anaconda custom (64-bit)

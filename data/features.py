@@ -88,7 +88,7 @@ class JustBeforeClickout(object):
 
 class Record2Impression(object):
     @classmethod
-    def expand(cls, X, extract_cols):
+    def expand(cls, X, extract_cols, dataset):
         print("... ... Record2Impression")
         # create expanded
         X = X.reset_index()
@@ -132,13 +132,38 @@ class Record2Impression(object):
         X["discount_rate"] = X["price"] / X["item_price_mean"]
         del prices_df
 
+        # append some important props and other props with over 0.2 coverage
+        sum_item_props_df = dataset["sum_item_props_df"]
+        item_props = dataset["item_props"]
+        prop_cols = ["pGood Rating"
+            , "pVery Good Rating"
+            , "pExcellent Rating"
+            , "pSatisfactory Rating"
+            , "p1 Star"
+            , "p2 Star"
+            , "p3 Star"
+            , "p4 Star"
+            , "p5 Star"
+            , "pBusiness Centre"
+            , "pBusiness Hotel"
+            , "pConference Rooms"]
+        c02over_prop_cols = sum_item_props_df[sum_item_props_df.coverage >= 0.2]["prop"].tolist()
+        prop_cols = prop_cols + c02over_prop_cols
+        prop_cols = list(set(prop_cols))
+        X = pd.merge(X, item_props[["item_id"] + prop_cols], left_on="impression", right_on="item_id", how="left")
+        X[prop_cols] = X[prop_cols].fillna(0)
+
         return (X, extract_cols)
 
 
-class Awareness(object):
+class DecisionMakingProcess(object):
     @classmethod
     def detect(cls, X, dataset):
-        print("... ... Awareness")
+        print("... ... Decision Making Process")
+
+        print("... ... ... Motivation")
+        print("... ... ... Attention and Perceptual Encoding")
+        print("... ... ... Information Acquisition and Evaluation")
         all_df = dataset["all_df"]
 
         # join pos stats"
@@ -157,7 +182,7 @@ class Awareness(object):
         X["co_pos_max"] = X["co_pos_max"].fillna(1)
         X["co_pos_min_diff"] = X["pos"] - X["co_pos_min"]
         X["co_pos_mean_diff"] = X["pos"] - X["co_pos_mean"]
-        X["co_pos_max_diff"] = X["co_pos_max"] - X["pos"]
+        X["clickouted_pos_max_diff"] = X["co_pos_max"] - X["pos"]
         del copos_df
         del copos_df_stats
 
@@ -263,8 +288,8 @@ class Awareness(object):
         co_price_df.columns = ["session_id", "couted_price_mean"]
         X = pd.merge(X, co_price_df, on="session_id", how="left")
         X["couted_price_mean"] = X["couted_price_mean"].fillna(-1)
-        X["co_price_diff"] = X["price"].astype(float) / X["couted_price_mean"]
-        X.loc[X.co_price_diff < 0, "co_price_diff"] = 0
+        X["clickouted_price_diff"] = X["price"].astype(float) / X["couted_price_mean"]
+        X.loc[X.clickouted_price_diff < 0, "clickouted_price_diff"] = 0
         del co_price_df
 
         # set two above displayed item and five below displayed item
@@ -306,47 +331,42 @@ class Awareness(object):
         X = pd.merge(X, selapsed_df, on="session_id", how="left")
         del selapsed_df
 
-        return X
+        # last duration all "is it same as is_last_elapsed_time?"
+        lduration_all_df = all_df[["session_id", "action_type", "timestamp", "is_y"]].copy()
+        lduration_all_df["pre_timestamp"] = lduration_all_df["timestamp"].shift(1)
+        lduration_all_df["pre_session_id"] = lduration_all_df["session_id"].shift(1)
+        lduration_all_df = lduration_all_df[lduration_all_df.session_id == lduration_all_df.pre_session_id]
+        lduration_all_df["elapsed_time"] = lduration_all_df["timestamp"] - lduration_all_df["pre_timestamp"]
+        lduration_all_df = lduration_all_df[lduration_all_df.is_y == 1]
+        lduration_all_df = lduration_all_df[["session_id", "elapsed_time"]]
+        X = pd.merge(X, lduration_all_df, on="session_id", how="left")
+        del lduration_all_df
 
-
-class ByItem(object):
-    @classmethod
-    def set(cls, X, dataset):
-        print("... ... ByItem")
-        all_df = dataset["all_df"]
-
-        # imps score
-        impscore_df = dataset["impscore_df"]
-        item_props = dataset["item_props"]
-        X = pd.merge(X, impscore_df, on="impression", how="left")
-        X["impsocre"] = X["impsocre"].fillna(0)
-
-        # append some important props and other props with over 0.2 coverage
-        sum_item_props_df = dataset["sum_item_props_df"]
-        prop_cols = ["pGood Rating"
-            , "pVery Good Rating"
-            , "pExcellent Rating"
-            , "pSatisfactory Rating"
-            , "p1 Star"
-            , "p2 Star"
-            , "p3 Star"
-            , "p4 Star"
-            , "p5 Star"
-            , "pBusiness Centre"
-            , "pBusiness Hotel"
-            , "pConference Rooms"]
-        c02over_prop_cols = sum_item_props_df[sum_item_props_df.coverage >= 0.2]["prop"].tolist()
-        prop_cols = prop_cols + c02over_prop_cols
-        prop_cols = list(set(prop_cols))
-        X = pd.merge(X, item_props[["item_id"] + prop_cols], left_on="impression", right_on="item_id", how="left")
-        X[prop_cols] = X[prop_cols].fillna(0)
-
-        # append item svd n_components=10
-        item_props_svd = dataset["item_props_svd"]
-        prop_svd_cols = list(item_props_svd.columns)
-        prop_svd_cols.remove("item_id")
-        X = pd.merge(X, item_props_svd, left_on="impression", right_on="item_id", how="left")
-        X[prop_svd_cols] = X[prop_svd_cols].fillna(0)
+        # first action_type
+        firsta_df = all_df[["session_id", "_session_id", "action_type", "is_y"]].copy()
+        firsta_df = firsta_df[firsta_df.is_y == 0]  # to prevent leakage
+        firsta_df = firsta_df.groupby("_session_id").first().reset_index()
+        firsta_df = firsta_df.groupby("session_id").last().reset_index()
+        firsta_df.loc[firsta_df["action_type"] == "search for destination", "action_type"] = "fa_sfd"
+        firsta_df.loc[firsta_df["action_type"] == "interaction item image", "action_type"] = "fa_iii"
+        firsta_df.loc[firsta_df["action_type"] == "clickout item", "action_type"] = "fa_coi"
+        firsta_df.loc[firsta_df["action_type"] == "search for item", "action_type"] = "fa_sfi"
+        firsta_df.loc[firsta_df["action_type"] == "search for poi", "action_type"] = "fa_sfp"
+        firsta_df.loc[firsta_df["action_type"] == "change of sort order", "action_type"] = "fa_coso"
+        firsta_df.loc[firsta_df["action_type"] == "filter selection", "action_type"] = "fa_fis"
+        firsta_df.loc[firsta_df["action_type"] == "interaction item info", "action_type"] = "fa_iiinfo"
+        firsta_df.loc[firsta_df["action_type"] == "interaction item rating", "action_type"] = "fa_iirat"
+        firsta_df.loc[firsta_df["action_type"] == "interaction item deals", "action_type"] = "fa_iidea"
+        firsta_df = firsta_df[["session_id", "action_type"]]
+        firsta_df.columns = ["session_id", "at"]
+        onehot_firsta = pd.get_dummies(firsta_df, columns=['at'])
+        firsta_cols = list(onehot_firsta.columns)
+        firsta_cols.remove("session_id")
+        X = pd.merge(X, onehot_firsta, on="session_id", how="left")
+        for firsta_col in firsta_cols:
+            X[firsta_col] = X[firsta_col].fillna(0)
+        del firsta_df
+        del onehot_firsta
 
         # price norm by item rating prop
         X["r6"] = 0
@@ -384,6 +404,85 @@ class ByItem(object):
         X["s_price_norm"] = (X["price"].astype(float) - X["s_price_mean"].astype(float)) / X["s_price_std"].astype(
             float)
         del pns_df
+
+        return X
+
+
+class ByItem(object):
+    @classmethod
+    def set(cls, X, dataset):
+        print("... ... ByItem")
+        all_df = dataset["all_df"]
+
+        # imps score
+        impscore_df = dataset["impscore_df"]
+        item_props = dataset["item_props"]
+        X = pd.merge(X, impscore_df, on="impression", how="left")
+        X["impsocre"] = X["impsocre"].fillna(0)
+
+        # # append some important props and other props with over 0.2 coverage
+        # sum_item_props_df = dataset["sum_item_props_df"]
+        # prop_cols = ["pGood Rating"
+        #     , "pVery Good Rating"
+        #     , "pExcellent Rating"
+        #     , "pSatisfactory Rating"
+        #     , "p1 Star"
+        #     , "p2 Star"
+        #     , "p3 Star"
+        #     , "p4 Star"
+        #     , "p5 Star"
+        #     , "pBusiness Centre"
+        #     , "pBusiness Hotel"
+        #     , "pConference Rooms"]
+        # c02over_prop_cols = sum_item_props_df[sum_item_props_df.coverage >= 0.2]["prop"].tolist()
+        # prop_cols = prop_cols + c02over_prop_cols
+        # prop_cols = list(set(prop_cols))
+        # X = pd.merge(X, item_props[["item_id"] + prop_cols], left_on="impression", right_on="item_id", how="left")
+        # X[prop_cols] = X[prop_cols].fillna(0)
+
+        # append item svd n_components=10
+        item_props_svd = dataset["item_props_svd"]
+        prop_svd_cols = list(item_props_svd.columns)
+        prop_svd_cols.remove("item_id")
+        X = pd.merge(X, item_props_svd, left_on="impression", right_on="item_id", how="left")
+        X[prop_svd_cols] = X[prop_svd_cols].fillna(0)
+
+        # # price norm by item rating prop
+        # X["r6"] = 0
+        # X["r7"] = 0
+        # X["r8"] = 0
+        # X["r9"] = 0
+        # X.loc[X["pSatisfactory Rating"] == 1, "r6"] = 6
+        # X.loc[X["pGood Rating"] == 1, "r7"] = 7
+        # X.loc[X["pVery Good Rating"] == 1, "r8"] = 8
+        # X.loc[X["pExcellent Rating"] == 1, "r9"] = 9
+        # X["rating"] = X[["r6", "r7", "r8", "r9"]].apply(
+        #     lambda x: np.mean(np.trim_zeros(np.array([x.r6, x.r7, x.r8, x.r9]))), axis=1)
+        # X["rating"] = X["rating"].fillna(-1)
+        # pns_df = X[["session_id", "rating", "price"]].groupby(["session_id", "rating"]).agg(
+        #     {'price': [np.mean, np.std]}).reset_index()
+        # pns_df.columns = ["session_id", "rating", "r_price_mean", "r_price_std"]
+        # pns_df["r_price_std"] = pns_df["r_price_std"].fillna(1)
+        # X = pd.merge(X, pns_df, on=["session_id", "rating"], how="left")
+        # X["r_price_norm"] = (X["price"].astype(float) - X["r_price_mean"].astype(float)) / X["r_price_std"].astype(
+        #     float)
+        # del pns_df
+        #
+        # # price norm by star
+        # X["star"] = -1
+        # X.loc[X["p1 Star"] == 1, "star"] = 1
+        # X.loc[X["p2 Star"] == 1, "star"] = 2
+        # X.loc[X["p3 Star"] == 1, "star"] = 3
+        # X.loc[X["p4 Star"] == 1, "star"] = 4
+        # X.loc[X["p5 Star"] == 1, "star"] = 5
+        # pns_df = X[["session_id", "star", "price"]].groupby(["session_id", "star"]).agg(
+        #     {'price': [np.mean, np.std]}).reset_index()
+        # pns_df.columns = ["session_id", "star", "s_price_mean", "s_price_std"]
+        # pns_df["s_price_std"] = pns_df["s_price_std"].fillna(1)
+        # X = pd.merge(X, pns_df, on=["session_id", "star"], how="left")
+        # X["s_price_norm"] = (X["price"].astype(float) - X["s_price_mean"].astype(float)) / X["s_price_std"].astype(
+        #     float)
+        # del pns_df
 
         # item ctr
         ctrbyitem_df = all_df[all_df.action_type == "clickout item"][["session_id", "reference", "is_y"]].copy()
@@ -428,6 +527,41 @@ class ByItem(object):
                 return bayes_likelihood[rlr]
             return 0.0
         X["bayes_li"] = X[["rlr"]].apply(lambda x: set_bayes_li(x.rlr), axis=1)
+
+        # clickouted item 2 item during session
+        v2v_counter = dataset["v2v_counter"]
+
+        def extract_sv2v_counter(iids):
+            v = {}
+            for iid in iids:
+                if iid in v2v_counter:
+                    for s in v2v_counter[iid]:
+                        if not s in v:
+                            v[s] = v2v_counter[iid][s]
+            return v
+
+        couted_df = all_df[["action_type", "session_id", "reference", "is_y"]].copy()
+        couted_df = couted_df[couted_df.action_type == "clickout item"]
+        couted_df = couted_df[couted_df.is_y == 0]  # to prevent leakage
+        couted_df = couted_df[["session_id", "reference"]]
+        couted_df.columns = ["session_id", "impression"]
+        couted_df = couted_df[~couted_df.duplicated()]
+        couted_df["clickouted"] = 1
+        sv2v_df = couted_df.groupby("session_id").apply(
+            lambda x: extract_sv2v_counter(list(x.impression))).reset_index()
+        sv2v_df.columns = ["session_id", "sv2v"]
+        X = pd.merge(X, sv2v_df, on="session_id", how="left")
+        X["sv2v"] = X["sv2v"].fillna("{}")
+        X["sv2v_score"] = X[["impression", "sv2v"]].apply(
+            lambda x: x.sv2v[x.impression] if x.impression in x.sv2v else np.nan, axis=1)
+        X.drop("sv2v", axis=1, inplace=True)
+        sv2vs_stats = X.groupby("session_id").agg({"sv2v_score": [np.mean, np.std]}).reset_index()
+        sv2vs_stats.columns = ["session_id", "sv2v_score_mean", "sv2v_score_std"]
+        X = pd.merge(X, sv2vs_stats, on="session_id", how="left")
+        X["sv2v_score_norm"] = X["sv2v_score"] - X["sv2v_score_mean"] / X["sv2v_score_std"]
+        del couted_df
+        del sv2v_df
+        del sv2vs_stats
 
         # some action_types are already done by each item during each session
         couted_df = all_df[["action_type", "session_id", "reference"]].copy()
@@ -702,7 +836,7 @@ class BySession(object):
             , "interaction item deals"
             , "search for item"
             , "clickout item"]
-        atype_short_names = ["iir_ratio"
+        atype_short_names = ["interaction_item_rating_ratio"
             , "iif_ratio"
             , "iii_ratio"
             , "iid_ratio"
@@ -725,39 +859,39 @@ class BySession(object):
         del preref_df2
         del preref_df3
 
-        # clickouted item 2 item during session
-        v2v_counter = dataset["v2v_counter"]
-        def extract_sv2v_counter(iids):
-            v = {}
-            for iid in iids:
-                if iid in v2v_counter:
-                    for s in v2v_counter[iid]:
-                        if not s in v:
-                            v[s] = v2v_counter[iid][s]
-            return v
-
-        couted_df = all_df[["action_type", "session_id", "reference", "is_y"]].copy()
-        couted_df = couted_df[couted_df.action_type == "clickout item"]
-        couted_df = couted_df[couted_df.is_y == 0]  # to prevent leakage
-        couted_df = couted_df[["session_id", "reference"]]
-        couted_df.columns = ["session_id", "impression"]
-        couted_df = couted_df[~couted_df.duplicated()]
-        couted_df["clickouted"] = 1
-        sv2v_df = couted_df.groupby("session_id").apply(
-            lambda x: extract_sv2v_counter(list(x.impression))).reset_index()
-        sv2v_df.columns = ["session_id", "sv2v"]
-        X = pd.merge(X, sv2v_df, on="session_id", how="left")
-        X["sv2v"] = X["sv2v"].fillna("{}")
-        X["sv2v_score"] = X[["impression", "sv2v"]].apply(
-            lambda x: x.sv2v[x.impression] if x.impression in x.sv2v else np.nan, axis=1)
-        X.drop("sv2v", axis=1, inplace=True)
-        sv2vs_stats = X.groupby("session_id").agg({"sv2v_score": [np.mean, np.std]}).reset_index()
-        sv2vs_stats.columns = ["session_id", "sv2v_score_mean", "sv2v_score_std"]
-        X = pd.merge(X, sv2vs_stats, on="session_id", how="left")
-        X["sv2v_score_norm"] = X["sv2v_score"] - X["sv2v_score_mean"] / X["sv2v_score_std"]
-        del couted_df
-        del sv2v_df
-        del sv2vs_stats
+        # # clickouted item 2 item during session
+        # v2v_counter = dataset["v2v_counter"]
+        # def extract_sv2v_counter(iids):
+        #     v = {}
+        #     for iid in iids:
+        #         if iid in v2v_counter:
+        #             for s in v2v_counter[iid]:
+        #                 if not s in v:
+        #                     v[s] = v2v_counter[iid][s]
+        #     return v
+        #
+        # couted_df = all_df[["action_type", "session_id", "reference", "is_y"]].copy()
+        # couted_df = couted_df[couted_df.action_type == "clickout item"]
+        # couted_df = couted_df[couted_df.is_y == 0]  # to prevent leakage
+        # couted_df = couted_df[["session_id", "reference"]]
+        # couted_df.columns = ["session_id", "impression"]
+        # couted_df = couted_df[~couted_df.duplicated()]
+        # couted_df["clickouted"] = 1
+        # sv2v_df = couted_df.groupby("session_id").apply(
+        #     lambda x: extract_sv2v_counter(list(x.impression))).reset_index()
+        # sv2v_df.columns = ["session_id", "sv2v"]
+        # X = pd.merge(X, sv2v_df, on="session_id", how="left")
+        # X["sv2v"] = X["sv2v"].fillna("{}")
+        # X["sv2v_score"] = X[["impression", "sv2v"]].apply(
+        #     lambda x: x.sv2v[x.impression] if x.impression in x.sv2v else np.nan, axis=1)
+        # X.drop("sv2v", axis=1, inplace=True)
+        # sv2vs_stats = X.groupby("session_id").agg({"sv2v_score": [np.mean, np.std]}).reset_index()
+        # sv2vs_stats.columns = ["session_id", "sv2v_score_mean", "sv2v_score_std"]
+        # X = pd.merge(X, sv2vs_stats, on="session_id", how="left")
+        # X["sv2v_score_norm"] = X["sv2v_score"] - X["sv2v_score_mean"] / X["sv2v_score_std"]
+        # del couted_df
+        # del sv2v_df
+        # del sv2vs_stats
 
         # is zero interactions
         zeroit_df = all_df[["session_id"]].groupby("session_id").size().reset_index()
@@ -766,31 +900,31 @@ class BySession(object):
         X = pd.merge(X, zeroit_df, on="session_id", how="left")
         del zeroit_df
 
-        # first action_type
-        firsta_df = all_df[["session_id", "_session_id", "action_type", "is_y"]].copy()
-        firsta_df = firsta_df[firsta_df.is_y == 0] # to prevent leakage
-        firsta_df = firsta_df.groupby("_session_id").first().reset_index()
-        firsta_df = firsta_df.groupby("session_id").last().reset_index()
-        firsta_df.loc[firsta_df["action_type"] == "search for destination", "action_type"] = "fa_sfd"
-        firsta_df.loc[firsta_df["action_type"] == "interaction item image", "action_type"] = "fa_iii"
-        firsta_df.loc[firsta_df["action_type"] == "clickout item", "action_type"] = "fa_coi"
-        firsta_df.loc[firsta_df["action_type"] == "search for item", "action_type"] = "fa_sfi"
-        firsta_df.loc[firsta_df["action_type"] == "search for poi", "action_type"] = "fa_sfp"
-        firsta_df.loc[firsta_df["action_type"] == "change of sort order", "action_type"] = "fa_coso"
-        firsta_df.loc[firsta_df["action_type"] == "filter selection", "action_type"] = "fa_fis"
-        firsta_df.loc[firsta_df["action_type"] == "interaction item info", "action_type"] = "fa_iiinfo"
-        firsta_df.loc[firsta_df["action_type"] == "interaction item rating", "action_type"] = "fa_iirat"
-        firsta_df.loc[firsta_df["action_type"] == "interaction item deals", "action_type"] = "fa_iidea"
-        firsta_df = firsta_df[["session_id", "action_type"]]
-        firsta_df.columns = ["session_id", "at"]
-        onehot_firsta = pd.get_dummies(firsta_df, columns=['at'])
-        firsta_cols = list(onehot_firsta.columns)
-        firsta_cols.remove("session_id")
-        X = pd.merge(X, onehot_firsta, on="session_id", how="left")
-        for firsta_col in firsta_cols:
-            X[firsta_col] = X[firsta_col].fillna(0)
-        del firsta_df
-        del onehot_firsta
+        # # first action_type
+        # firsta_df = all_df[["session_id", "_session_id", "action_type", "is_y"]].copy()
+        # firsta_df = firsta_df[firsta_df.is_y == 0] # to prevent leakage
+        # firsta_df = firsta_df.groupby("_session_id").first().reset_index()
+        # firsta_df = firsta_df.groupby("session_id").last().reset_index()
+        # firsta_df.loc[firsta_df["action_type"] == "search for destination", "action_type"] = "fa_sfd"
+        # firsta_df.loc[firsta_df["action_type"] == "interaction item image", "action_type"] = "fa_iii"
+        # firsta_df.loc[firsta_df["action_type"] == "clickout item", "action_type"] = "fa_coi"
+        # firsta_df.loc[firsta_df["action_type"] == "search for item", "action_type"] = "fa_sfi"
+        # firsta_df.loc[firsta_df["action_type"] == "search for poi", "action_type"] = "fa_sfp"
+        # firsta_df.loc[firsta_df["action_type"] == "change of sort order", "action_type"] = "fa_coso"
+        # firsta_df.loc[firsta_df["action_type"] == "filter selection", "action_type"] = "fa_fis"
+        # firsta_df.loc[firsta_df["action_type"] == "interaction item info", "action_type"] = "fa_iiinfo"
+        # firsta_df.loc[firsta_df["action_type"] == "interaction item rating", "action_type"] = "fa_iirat"
+        # firsta_df.loc[firsta_df["action_type"] == "interaction item deals", "action_type"] = "fa_iidea"
+        # firsta_df = firsta_df[["session_id", "action_type"]]
+        # firsta_df.columns = ["session_id", "at"]
+        # onehot_firsta = pd.get_dummies(firsta_df, columns=['at'])
+        # firsta_cols = list(onehot_firsta.columns)
+        # firsta_cols.remove("session_id")
+        # X = pd.merge(X, onehot_firsta, on="session_id", how="left")
+        # for firsta_col in firsta_cols:
+        #     X[firsta_col] = X[firsta_col].fillna(0)
+        # del firsta_df
+        # del onehot_firsta
 
         # unique reference ratio during session
         uniqueref_df = all_df[["session_id", "reference", "action_type", "is_y"]].copy()
@@ -833,16 +967,16 @@ class BySession(object):
             del cnt_df
         del cocnt_df
 
-        # last duration all "is it same as is_last_elapsed_time?"
-        lduration_all_df = all_df[["session_id", "action_type", "timestamp", "is_y"]].copy()
-        lduration_all_df["pre_timestamp"] = lduration_all_df["timestamp"].shift(1)
-        lduration_all_df["pre_session_id"] = lduration_all_df["session_id"].shift(1)
-        lduration_all_df = lduration_all_df[lduration_all_df.session_id == lduration_all_df.pre_session_id]
-        lduration_all_df["elapsed_time"] = lduration_all_df["timestamp"] - lduration_all_df["pre_timestamp"]
-        lduration_all_df = lduration_all_df[lduration_all_df.is_y == 1]
-        lduration_all_df = lduration_all_df[["session_id", "elapsed_time"]]
-        X = pd.merge(X, lduration_all_df, on="session_id", how="left")
-        del lduration_all_df
+        # # last duration all "is it same as is_last_elapsed_time?"
+        # lduration_all_df = all_df[["session_id", "action_type", "timestamp", "is_y"]].copy()
+        # lduration_all_df["pre_timestamp"] = lduration_all_df["timestamp"].shift(1)
+        # lduration_all_df["pre_session_id"] = lduration_all_df["session_id"].shift(1)
+        # lduration_all_df = lduration_all_df[lduration_all_df.session_id == lduration_all_df.pre_session_id]
+        # lduration_all_df["elapsed_time"] = lduration_all_df["timestamp"] - lduration_all_df["pre_timestamp"]
+        # lduration_all_df = lduration_all_df[lduration_all_df.is_y == 1]
+        # lduration_all_df = lduration_all_df[["session_id", "elapsed_time"]]
+        # X = pd.merge(X, lduration_all_df, on="session_id", how="left")
+        # del lduration_all_df
 
         # click out cnt by all and to summarize by session")
         cocntbyss_df = all_df[(all_df.action_type == "clickout item") & (all_df.is_y == 0)][["reference"]].copy()

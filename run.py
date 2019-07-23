@@ -26,7 +26,7 @@ from data.features import BySession
 from data.features import ByItem
 from data.features import ByLocation
 from data.features import JustBeforeClickout
-from data.features import Awareness
+from data.features import DecisionMakingProcess
 from data.features import Polinomials
 from data.features import TargetVariable
 
@@ -89,13 +89,13 @@ def pipeline(scope="check"):
 
     # expanding X
     print("... expanding X")
-    X, extract_cols = Record2Impression.expand(X, extract_cols)
+    X, extract_cols = Record2Impression.expand(X, extract_cols, dataset)
     gc.collect()
 
     # feature engineering to expanded X
     print("... feature engineering to expanded X")
     X = EncodingForCategories.to_prob(X, dataset)
-    X = Awareness.detect(X, dataset)
+    X = DecisionMakingProcess.detect(X, dataset)
     X = BySession.set(X, dataset)
     X = ByItem.set(X, dataset)
     X = ByLocation.set(X, dataset)
@@ -119,6 +119,10 @@ def pipeline(scope="check"):
     print(y_pred_df.head())
     print("")
     print("Local mrr: {}".format(mrr))
+    print(calc_ndcg(y_pred_df))
+    fti = model.feature_importance()
+    fti_df = pd.DataFrame({"feature": target_cols, "importance": fti})
+    print(fti_df.sort_values("importance", ascending=False).head(10))
 
     if (scope!="--check"):
         # create submission
