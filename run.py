@@ -121,7 +121,7 @@ def pipeline(scope="check"):
     print(y_pred_df.head())
     print("")
     print("Local mrr: {}".format(mrr))
-    # print(calc_ndcg(y_pred_df))
+    print(calc_ndcg(y_pred_df))
     fti = model.feature_importance()
     fti_df = pd.DataFrame({"feature": target_cols, "importance": fti})
     print(fti_df.sort_values("importance", ascending=False).head(10))

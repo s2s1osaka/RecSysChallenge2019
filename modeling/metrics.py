@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime
+from scipy.stats import rankdata
 
 def calc_mrr(x):
     impressions = list(x.impression)

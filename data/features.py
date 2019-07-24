@@ -160,8 +160,6 @@ class DecisionMakingProcess(object):
     @classmethod
     def detect(cls, X, dataset):
         print("... ... Decision Making Process")
-
-        print("... ... ... Motivation")
         print("... ... ... Attention and Perceptual Encoding")
         print("... ... ... Information Acquisition and Evaluation")
         all_df = dataset["all_df"]
@@ -810,7 +808,7 @@ class ByItem(object):
 class BySession(object):
     @classmethod
     def set(cls, X, dataset):
-        print("... ... BySession")
+        print("... ... BySession as Motivation")
         all_df = dataset["all_df"]
 
         # item ratio of appearance by each session
