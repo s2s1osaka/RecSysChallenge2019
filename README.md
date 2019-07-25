@@ -118,5 +118,9 @@ Local mrr: 0.6811392490905741
 21                   discount_rate         437
 121                     etbil_x_pr         428
 172              step_elapsed_mean         421
+... create submission
+./subs/YYYYMMDD_NNNN_submission.csv
+pipeline elapsed_time: 5.98204878879918 [hour]
+finished
 ```
 
