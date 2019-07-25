@@ -98,5 +98,25 @@ finished
 You can make the submission through loading data, pre-precessing, feature-engineering, local-validation, and prediction, you put into this command as follow 
 ```
 $ python run.py --all 
+```
+or
+```
+$ nohup python run.py --all > log.txt &
 ```   
+Finally, the following results will be appeared.
+```
+Local mrr: 0.6811392490905741
+[{'nDCG@1': 0.5662234525477674}, {'nDCG@3': 0.6696468450377043}, {'nDCG@5': 0.7024377638371618}]
+                           feature  importance
+90    elapsed_time_between_is_last         858
+141          clickouted_price_diff         763
+180                   elapsed_time         758
+11                        pos_rate         731
+12                      price_norm         560
+19         clickouted_pos_max_diff         476
+83   interaction_item_rating_ratio         466
+21                   discount_rate         437
+121                     etbil_x_pr         428
+172              step_elapsed_mean         421
+```
 

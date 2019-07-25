@@ -41,13 +41,16 @@ from modeling.metrics import calc_ndcg
 def pipeline(scope="check"):
     start = time.time()
     print("starting")
+    sys.stdout.flush()
 
     # loading dataset
     print("... loading dataset")
+    sys.stdout.flush()
     dataset = Dataset.load(path="./data_v2/", scope=scope)
 
     # preprocessing
     print("... preprocessing")
+    sys.stdout.flush()
     CityForSessionStep.create(dataset)
     ItemPropsVector.create(dataset)
     View2viewCounter.create(dataset)
@@ -57,6 +60,7 @@ def pipeline(scope="check"):
 
     # create rows for training as X
     print("... create rows for training as X")
+    sys.stdout.flush()
     extract_cols = ["user_id"
         , "_session_id"
         , "session_id"
@@ -78,6 +82,7 @@ def pipeline(scope="check"):
 
     # set dummy variables for device
     print("... set dummy variables for device")
+    sys.stdout.flush()
     device_df = pd.get_dummies(X[["device"]], columns=['device'])
     device_df.columns = ["desktop", "mobile", "tablet"]
     X = pd.concat([X, device_df[["desktop", "mobile"]]], axis=1)
@@ -86,35 +91,47 @@ def pipeline(scope="check"):
 
     # feature engineering to X
     print("... feature engineering to X")
+    sys.stdout.flush()
     X, extract_cols = Durations.set(X, extract_cols, dataset)
     X, extract_cols = JustClickout.set(X, extract_cols)
     gc.collect()
 
     # expanding X
     print("... expanding X")
+    sys.stdout.flush()
     X, extract_cols = Record2Impression.expand(X, extract_cols, dataset)
     gc.collect()
 
     # feature engineering to expanded X
     print("... feature engineering to expanded X")
+    sys.stdout.flush()
     X = EncodingForCategories.to_prob(X, dataset)
+    sys.stdout.flush()
     X = DecisionMakingProcess.detect(X, dataset)
+    sys.stdout.flush()
     X = BySession.set(X, dataset)
+    sys.stdout.flush()
     X = ByItem.set(X, dataset)
+    sys.stdout.flush()
     X = ByLocation.set(X, dataset)
+    sys.stdout.flush()
     X = JustBeforeClickout.set(X, dataset)
+    sys.stdout.flush()
     gc.collect()
 
     # set interactions between features
     print("... set interactions between features")
+    sys.stdout.flush()
     X = Polinomials.set(X)
 
     # target variable
     print("... target variable")
+    sys.stdout.flush()
     X = TargetVariable.set(X)
 
     # local validation
     print("... local validation")
+    sys.stdout.flush()
     X_TR = X[X.is_train == 1]
     y_pred_df, mrr, model = Validation.get_pred_df(X_TR, scope=scope)
     gc.collect()
@@ -130,6 +147,7 @@ def pipeline(scope="check"):
     if (scope!="--check"):
         # create submission
         print("... create submission")
+        sys.stdout.flush()
         submission_df = dataset["submission_df"].copy()
         del dataset
         gc.collect()
