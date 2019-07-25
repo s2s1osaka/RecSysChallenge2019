@@ -60,4 +60,4 @@ class Validation(object):
             print(fti_df.sort_values("importance", ascending=False))
 
         # display(y_pred_df.head())
-        return (y_pred_df, np.mean(y_pred_df.groupby("gid").apply(lambda x: calc_mrr(x))))
+        return (y_pred_df, np.mean(y_pred_df.groupby("gid").apply(lambda x: calc_mrr(x))), model)

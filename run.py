@@ -33,6 +33,7 @@ from data.features import TargetVariable
 from modeling.local import Validation
 from modeling.public import Prediction
 from modeling.public import Submission
+from modeling import get_target_cols
 
 from modeling.metrics import calc_ndcg
 
@@ -115,7 +116,7 @@ def pipeline(scope="check"):
     # local validation
     print("... local validation")
     X_TR = X[X.is_train == 1]
-    y_pred_df, mrr = Validation.get_pred_df(X_TR, scope=scope)
+    y_pred_df, mrr, model = Validation.get_pred_df(X_TR, scope=scope)
     gc.collect()
     print(y_pred_df.shape)
     print(y_pred_df.head())
@@ -123,7 +124,7 @@ def pipeline(scope="check"):
     print("Local mrr: {}".format(mrr))
     print(calc_ndcg(y_pred_df))
     fti = model.feature_importance()
-    fti_df = pd.DataFrame({"feature": target_cols, "importance": fti})
+    fti_df = pd.DataFrame({"feature": get_target_cols(), "importance": fti})
     print(fti_df.sort_values("importance", ascending=False).head(10))
 
     if (scope!="--check"):

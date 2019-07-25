@@ -43,8 +43,10 @@ starting
 ... ... Record2Impression
 ... feature engineering to expanded X
 ... ... EncodingForCategories
-... ... Awareness
-... ... BySession
+... ... Decision Making Process
+... ... ... Attention and Perceptual Encoding
+... ... ... Information Acquisition and Evaluation
+... ... BySession as Motivation
 ... ... ByItem
 ... ... ByLocation
 ... ... JustBeforeClickout
@@ -54,29 +56,41 @@ starting
 ... ... TargetVariable
 ... local validation
 [LightGBM] [Warning] Find whitespaces in feature_names, replace with underlines
-[LightGBM] [Info] Total Bins 13459
-[LightGBM] [Info] Number of data: 2091182, number of used features: 186
+[LightGBM] [Info] Total Bins 13440
+[LightGBM] [Info] Number of data: 2070576, number of used features: 186
 [LightGBM] [Warning] Find whitespaces in feature_names, replace with underlines
-[1]	valid_0's ndcg@1: 0.528126	valid_0's ndcg@3: 0.600165	valid_0's ndcg@5: 0.638517
-[2]	valid_0's ndcg@1: 0.543978	valid_0's ndcg@3: 0.608781	valid_0's ndcg@5: 0.645757
-[3]	valid_0's ndcg@1: 0.546102	valid_0's ndcg@3: 0.609904	valid_0's ndcg@5: 0.647168
-[4]	valid_0's ndcg@1: 0.546587	valid_0's ndcg@3: 0.610802	valid_0's ndcg@5: 0.64787
-[5]	valid_0's ndcg@1: 0.546789	valid_0's ndcg@3: 0.610886	valid_0's ndcg@5: 0.648317
-[6]	valid_0's ndcg@1: 0.547375	valid_0's ndcg@3: 0.611325	valid_0's ndcg@5: 0.648644
-[7]	valid_0's ndcg@1: 0.547557	valid_0's ndcg@3: 0.611425	valid_0's ndcg@5: 0.648751
-[8]	valid_0's ndcg@1: 0.54778	valid_0's ndcg@3: 0.61178	valid_0's ndcg@5: 0.649129
-[9]	valid_0's ndcg@1: 0.547982	valid_0's ndcg@3: 0.611995	valid_0's ndcg@5: 0.649254
-[10]	valid_0's ndcg@1: 0.548063	valid_0's ndcg@3: 0.612354	valid_0's ndcg@5: 0.649202
-(1134038, 4)
-   gid impression  clicked                  prob
-0  434    2269838        0   0.19202540412714303
-1  434     211041        0  -0.01283260825256696
-2  434    1331323        0  -0.04665281549427339
-3  434    1439759        0   0.01273867109885182
-4  434      54152        0 -0.004749033911652081
+[1]	valid_0's ndcg@1: 0.531856	valid_0's ndcg@3: 0.600321	valid_0's ndcg@5: 0.637807
+[2]	valid_0's ndcg@1: 0.54882	valid_0's ndcg@3: 0.609377	valid_0's ndcg@5: 0.645577
+[3]	valid_0's ndcg@1: 0.548578	valid_0's ndcg@3: 0.610547	valid_0's ndcg@5: 0.647321
+[4]	valid_0's ndcg@1: 0.549225	valid_0's ndcg@3: 0.610888	valid_0's ndcg@5: 0.647868
+[5]	valid_0's ndcg@1: 0.549508	valid_0's ndcg@3: 0.610983	valid_0's ndcg@5: 0.648551
+[6]	valid_0's ndcg@1: 0.549669	valid_0's ndcg@3: 0.611511	valid_0's ndcg@5: 0.649081
+[7]	valid_0's ndcg@1: 0.550033	valid_0's ndcg@3: 0.611753	valid_0's ndcg@5: 0.649307
+[8]	valid_0's ndcg@1: 0.550236	valid_0's ndcg@3: 0.611599	valid_0's ndcg@5: 0.649597
+[9]	valid_0's ndcg@1: 0.550418	valid_0's ndcg@3: 0.611916	valid_0's ndcg@5: 0.650082
+[10]	valid_0's ndcg@1: 0.550458	valid_0's ndcg@3: 0.611909	valid_0's ndcg@5: 0.650095
+(1135523, 4)
+   gid impression  clicked                 prob
+0  472      76028        0  0.32929795819497326
+1  472      70388        0  0.11374295278224102
+2  472    1336053        0  0.03926587118083777
+3  472     317126        0 -0.08821200130791787
+4  472      79506        0 -0.04294223637748899
 
-Local mrr: 0.5356470557472142
-elapsed_time: 1.1241914156410429 [hour]
+Local mrr: 0.5364598305788802
+[{'nDCG@1': 0.4003073376872839}, {'nDCG@3': 0.509373241347707}, {'nDCG@5': 0.551707831104393}]
+                           feature  importance
+90    elapsed_time_between_is_last          50
+12                      price_norm          31
+89                         is_last          27
+13                 price_norm_rank          26
+17                 co_pos_min_diff          21
+180                   elapsed_time          19
+19         clickouted_pos_max_diff          18
+11                        pos_rate          18
+82                    precnt_ratio          16
+83   interaction_item_rating_ratio          12
+pipeline elapsed_time: 1.1443207128180397 [hour]
 finished
 ```
 
